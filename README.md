@@ -34,15 +34,6 @@ cd backend && uv run uvicorn app:app --port 8901
 cd frontend && pnpm install && pnpm dev
 ```
 
-## 一键启动（Windows）
-
-双击 `start.bat`（或在项目根目录命令行运行），自动完成依赖检查、前端构建和 HTTPS 启动：
-
-```bash
-start.bat                # 默认尝试 443/2053/2087/8443 端口
-start.bat --port 58080   # 或指定端口
-```
-
 ## 生产模式（单进程）
 
 ```bash
