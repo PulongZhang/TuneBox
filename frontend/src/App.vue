@@ -9,6 +9,7 @@ import { usePlayerStore } from './stores/player'
 import { usePlaylistStore } from './stores/playlist'
 import { downloadFile } from './utils/download'
 import LyricView from './views/LyricView.vue'
+import MyView from './views/MyView.vue'
 import PlaylistView from './views/PlaylistView.vue'
 import SearchView from './views/SearchView.vue'
 
@@ -210,6 +211,9 @@ function triggerDownload(kind: 'audio' | 'lyric') {
           </el-tab-pane>
           <el-tab-pane label="🎤 歌词" name="lyrics">
             <LyricView />
+          </el-tab-pane>
+          <el-tab-pane label="👤 我的" name="mine">
+            <MyView @imported="activeTab = 'playlist'" />
           </el-tab-pane>
         </el-tabs>
       </el-main>

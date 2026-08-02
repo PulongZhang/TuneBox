@@ -35,3 +35,16 @@ export interface LyricLine {
 }
 
 export type PlayMode = 'loop' | 'shuffle' | 'repeat-one'
+
+export interface NetEaseProfile {
+  userId: number | string
+  nickname: string
+  avatarUrl: string
+}
+
+export interface UserPlaylist {
+  id: number | string
+  name: string
+  cover: string
+  trackCount: number
+}

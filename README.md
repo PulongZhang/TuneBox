@@ -23,6 +23,9 @@ MUSIC_API=https://your-api-host.example.com/api
 ```
 
 > `MUSIC_API` 是必填项，缺失时服务拒绝启动。
+>
+> 可选：`NETEASE_COOKIE_FILE`（网易云登录态 Cookie 文件路径，默认 `backend/netease_cookie.json`）、
+> `NCM_REAL_IP`（直连网易云官方接口时附加的 X-Real-IP，海外部署遇 412/地域限制时配置）。
 
 ## 开发模式
 
@@ -94,4 +97,5 @@ uv run ruff check app tests
 - 播放器：循环/随机/单曲模式、进度拖拽、音量、音质标签
 - 同步歌词（含翻译），自动滚动高亮
 - 导入歌单（歌单 ID 或链接），列表右键菜单
+- 网易云账号登录（官方扫码，Cookie 存后端文件），导入「我的歌单」与私有歌单
 - 快捷键：空格（播放/暂停）、←/→（上/下曲）、↑/↓（音量）、M（静音）、Delete（移除当前）、Ctrl+S（下载音频）、Ctrl+L（下载歌词）

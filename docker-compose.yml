@@ -6,4 +6,12 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     env_file: .env
+    environment:
+      # 网易云登录态持久化到数据卷（容器重建不丢失）
+      - NETEASE_COOKIE_FILE=/data/netease_cookie.json
+    volumes:
+      - tunebox-data:/data
     restart: unless-stopped
+
+volumes:
+  tunebox-data:
