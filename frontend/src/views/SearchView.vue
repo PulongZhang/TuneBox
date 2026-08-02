@@ -84,11 +84,11 @@ defineExpose({ doSearch })
       <el-table-column label="时长" width="80" align="center">
         <template #default="{ row }">{{ formatDuration(row.duration) }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="150" align="center">
+      <el-table-column label="操作" width="240" align="center">
         <template #default="{ row }">
           <el-button size="small" type="primary" plain @click="play(row)">播放</el-button>
           <el-button size="small" @click="addToList(row)">加入</el-button>
-          <el-button size="small" circle title="下载音频" @click="download(row)">⬇</el-button>
+          <el-button size="small" @click="download(row)">下载</el-button>
         </template>
       </el-table-column>
     </el-table>

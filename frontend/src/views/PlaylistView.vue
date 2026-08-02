@@ -115,11 +115,11 @@ defineExpose({ loadPlaylist, clearAll })
           <span style="color: var(--el-text-color-secondary); margin-left: 8px">— {{ row.artist }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="140" align="center">
+      <el-table-column label="操作" width="240" align="center">
         <template #default="{ $index }">
           <el-button size="small" type="primary" plain @click="playAt($index)">播放</el-button>
-          <el-button size="small" circle title="下载音频" @click="triggerDownload(playlist.list[$index], 'audio')">⬇</el-button>
-          <el-button size="small" circle type="danger" plain title="移除" @click="removeAt($index)">✕</el-button>
+          <el-button size="small" @click="triggerDownload(playlist.list[$index], 'audio')">下载</el-button>
+          <el-button size="small" type="danger" plain @click="removeAt($index)">移除</el-button>
         </template>
       </el-table-column>
     </el-table>
