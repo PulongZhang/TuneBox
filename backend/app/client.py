@@ -135,10 +135,10 @@ def normalize_song(s: dict) -> dict:
     }
 
 
-def get_audio_url(sid: str) -> str:
-    """获取歌曲直链（臻品母带音质），失败返回空串。"""
+def get_audio_url(sid: str, level: str = "jymaster") -> str:
+    """获取歌曲直链（指定音质，默认臻品母带），失败返回空串。"""
     try:
-        r = api_get("/163_music", {"id": sid, "level": "jymaster"})
+        r = api_get("/163_music", {"id": sid, "level": level})
         body = r.json()
         if body.get("code") != 200:
             return ""
@@ -150,10 +150,10 @@ def get_audio_url(sid: str) -> str:
         return ""
 
 
-def get_song_meta(sid: str) -> dict:
+def get_song_meta(sid: str, level: str = "jymaster") -> dict:
     """获取歌曲完整元数据（含音质/大小/直链）。"""
     try:
-        r = api_get("/163_music", {"id": sid, "level": "jymaster"})
+        r = api_get("/163_music", {"id": sid, "level": level})
         body = r.json()
         if body.get("code") != 200:
             return {}

@@ -3,7 +3,9 @@ import type { LyricLine, PlayMode, SongDetail } from '../types'
 
 const LS_KEY = 'music.player'
 
-function loadPersisted(): { volume: number; mode: PlayMode } {
+export const QUALITY_LEVELS = ['jymaster', 'lossless', 'hires', 'exhigh', 'higher', 'standard']
+
+function loadPersisted(): { volume: number; mode: PlayMode; quality: string } {
   try {
     const raw = localStorage.getItem(LS_KEY)
     if (raw) {
@@ -11,12 +13,13 @@ function loadPersisted(): { volume: number; mode: PlayMode } {
       return {
         volume: Number.isFinite(parsed.volume) ? parsed.volume : 70,
         mode: ['loop', 'shuffle', 'repeat-one'].includes(parsed.mode) ? parsed.mode : 'loop',
+        quality: QUALITY_LEVELS.includes(parsed.quality) ? parsed.quality : 'jymaster',
       }
     }
   } catch {
     // 忽略损坏数据
   }
-  return { volume: 70, mode: 'loop' }
+  return { volume: 70, mode: 'loop', quality: 'jymaster' }
 }
 
 export const usePlayerStore = defineStore('player', {
@@ -27,6 +30,7 @@ export const usePlayerStore = defineStore('player', {
       volume: persisted.volume,
       muted: false,
       mode: persisted.mode as PlayMode,
+      quality: persisted.quality,
       currentTime: 0,
       duration: 0,
       detail: null as SongDetail | null,
@@ -35,7 +39,16 @@ export const usePlayerStore = defineStore('player', {
   },
   actions: {
     persist() {
-      localStorage.setItem(LS_KEY, JSON.stringify({ volume: this.volume, mode: this.mode }))
+      localStorage.setItem(
+        LS_KEY,
+        JSON.stringify({ volume: this.volume, mode: this.mode, quality: this.quality }),
+      )
+    },
+    setQuality(q: string) {
+      if (QUALITY_LEVELS.includes(q)) {
+        this.quality = q
+        this.persist()
+      }
     },
     setDetail(detail: SongDetail | null) {
       this.detail = detail

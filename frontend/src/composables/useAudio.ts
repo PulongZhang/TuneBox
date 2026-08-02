@@ -67,7 +67,7 @@ export function useAudio() {
   function loadAndPlay(song: Song) {
     const idx = playlist.indexOf(song)
     if (idx >= 0) playlist.playAt(idx)
-    audio.src = streamUrl(song.id)
+    audio.src = streamUrl(song.id, player.quality)
     audio.load()
     audio.play().catch((e) => {
       if ((e as DOMException)?.name === 'NotAllowedError') {
@@ -81,7 +81,7 @@ export function useAudio() {
   function reloadCurrent() {
     const song = playlist.currentSong
     if (!song) return
-    audio.src = streamUrl(song.id)
+    audio.src = streamUrl(song.id, player.quality)
     audio.load()
     audio.play().catch(() => {})
   }
@@ -124,5 +124,5 @@ export function useAudio() {
     audio.currentTime = t
   }
 
-  return { audio, loadAndPlay, toggle, next, prev, seek }
+  return { audio, loadAndPlay, reloadCurrent, toggle, next, prev, seek }
 }

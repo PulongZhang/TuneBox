@@ -34,8 +34,8 @@ def search(q: str = Query(..., min_length=1), limit: int = Query(30, ge=1, le=10
 
 
 @router.get("/songs/{sid}")
-def song(sid: str):
-    raw = client.get_song_meta(sid)
+def song(sid: str, level: str = Query("jymaster")):
+    raw = client.get_song_meta(sid, level)
     if not raw:
         raise HTTPException(status_code=404, detail="歌曲不存在或无法获取音源")
     return {"data": {
@@ -119,16 +119,16 @@ def _stream_response(audio_url: str, range_header: str | None = None):
 
 
 @router.get("/songs/{sid}/stream")
-def stream(sid: str, request: Request):
-    audio_url = client.get_audio_url(sid)
+def stream(sid: str, request: Request, level: str = Query("jymaster")):
+    audio_url = client.get_audio_url(sid, level)
     if not audio_url:
         raise HTTPException(status_code=404, detail="无法获取音源")
     return _stream_response(audio_url, request.headers.get("Range"))
 
 
 @router.get("/songs/{sid}/download")
-def download(sid: str):
-    raw = client.get_song_meta(sid)
+def download(sid: str, level: str = Query("jymaster")):
+    raw = client.get_song_meta(sid, level)
     audio_url = raw.get("url", "")
     if not audio_url:
         raise HTTPException(status_code=404, detail="无法获取音源")

@@ -52,13 +52,13 @@ def test_search_upstream_error(monkeypatch):
 
 
 def test_song_not_found(monkeypatch):
-    monkeypatch.setattr(client, "get_song_meta", lambda sid: {})
+    monkeypatch.setattr(client, "get_song_meta", lambda sid, level="jymaster": {})
     r = _client().get("/api/v1/songs/999")
     assert r.status_code == 404
 
 
 def test_song_ok(monkeypatch):
-    monkeypatch.setattr(client, "get_song_meta", lambda sid: {
+    monkeypatch.setattr(client, "get_song_meta", lambda sid, level="jymaster": {
         "id": sid, "url": "https://cdn/a.flac", "br": 5532261,
         "size": 1000, "level": "jymaster", "md5": "m", "name": "N", "artist": "A",
     })
@@ -68,13 +68,13 @@ def test_song_ok(monkeypatch):
 
 
 def test_stream_missing_url_404(monkeypatch):
-    monkeypatch.setattr(client, "get_audio_url", lambda sid: "")
+    monkeypatch.setattr(client, "get_audio_url", lambda sid, level="jymaster": "")
     r = _client().get("/api/v1/songs/1/stream")
     assert r.status_code == 404
 
 
 def test_stream_206_with_range(monkeypatch):
-    monkeypatch.setattr(client, "get_audio_url", lambda sid: "https://cdn/a.flac")
+    monkeypatch.setattr(client, "get_audio_url", lambda sid, level="jymaster": "https://cdn/a.flac")
     monkeypatch.setattr(
         client, "api_get",
         lambda path, params=None, timeout=12: None,
@@ -100,7 +100,7 @@ def test_stream_206_with_range(monkeypatch):
 
 
 def test_download_headers(monkeypatch):
-    monkeypatch.setattr(client, "get_song_meta", lambda sid: {
+    monkeypatch.setattr(client, "get_song_meta", lambda sid, level="jymaster": {
         "url": "https://cdn/a.flac", "name": "歌", "artist": "歌手",
     })
     from app import streaming
@@ -123,7 +123,7 @@ def test_lyric_empty_fallback(monkeypatch):
         return R()
 
     monkeypatch.setattr(client, "api_get", fake_api_get)
-    monkeypatch.setattr(client, "get_song_meta", lambda sid: {})
+    monkeypatch.setattr(client, "get_song_meta", lambda sid, level="jymaster": {})
     r = _client().get("/api/v1/songs/1/lyric")
     assert r.status_code == 200
     assert r.json()["data"]["lrc"] == ""
@@ -132,6 +132,34 @@ def test_lyric_empty_fallback(monkeypatch):
 def test_cover_proxy_requires_url():
     r = _client().get("/api/v1/cover-proxy")
     assert r.status_code == 422
+
+
+def test_song_level_passed_to_upstream(monkeypatch):
+    """/songs/{sid} 的 level 参数应透传给上游 /163_music。"""
+    captured = {}
+
+    def fake_get_song_meta(sid, level="jymaster"):
+        captured["level"] = level
+        return {"id": sid, "level": level, "url": "https://cdn/a.flac"}
+
+    monkeypatch.setattr(client, "get_song_meta", fake_get_song_meta)
+    r = _client().get("/api/v1/songs/1", params={"level": "lossless"})
+    assert r.status_code == 200
+    assert captured["level"] == "lossless"
+    assert r.json()["data"]["level"] == "lossless"
+
+
+def test_stream_level_passed_to_upstream(monkeypatch):
+    """stream 的 level 参数应传给 get_audio_url。"""
+    captured = {}
+
+    def fake_get_audio_url(sid, level="jymaster"):
+        captured["level"] = level
+        return ""
+
+    monkeypatch.setattr(client, "get_audio_url", fake_get_audio_url)
+    _client().get("/api/v1/songs/1/stream", params={"level": "hires"})
+    assert captured["level"] == "hires"
 
 
 def test_playlist_upstream_error(monkeypatch):

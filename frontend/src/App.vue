@@ -14,7 +14,7 @@ import SearchView from './views/SearchView.vue'
 
 const player = usePlayerStore()
 const playlist = usePlaylistStore()
-const { toggle, next, prev, seek } = useAudio()
+const { reloadCurrent, toggle, next, prev, seek } = useAudio()
 
 const activeTab = ref('search')
 const keyword = ref('')
@@ -38,7 +38,29 @@ const modeMeta: Record<string, { icon: string; label: string }> = {
 const modeIcon = computed(() => modeMeta[player.mode].icon)
 const modeLabel = computed(() => modeMeta[player.mode].label)
 
+const qualityOptions = Object.entries(QUALITY_MAP).map(([value, meta]) => ({
+  value,
+  label: meta.label,
+}))
+
 useHotkeys(() => activeTab.value)
+
+// 切换音质：重载当前曲目并刷新音质详情
+watch(
+  () => player.quality,
+  async (q) => {
+    const song = playlist.currentSong
+    if (!song) return
+    reloadCurrent()
+    try {
+      const detail = await getSong(song.id, q)
+      player.setDetail(detail)
+    } catch {
+      // 详情拉取失败不影响播放
+    }
+    ElMessage.success(`已切换为 ${QUALITY_MAP[q]?.label}`)
+  },
+)
 
 // 切换当前曲目：拉取音质详情与歌词
 watch(
@@ -52,7 +74,7 @@ watch(
     player.setDetail(null)
     player.setLyricLines([])
     try {
-      const [detail, lyric] = await Promise.all([getSong(song.id), getLyric(song.id)])
+      const [detail, lyric] = await Promise.all([getSong(song.id, player.quality), getLyric(song.id)])
       player.setDetail(detail)
       player.setLyricLines(parseLyric(lyric.lrc, lyric.tlrc))
     } catch {
@@ -74,7 +96,7 @@ function formatTime(s: number): string {
 function triggerDownload(kind: 'audio' | 'lyric') {
   const song = playlist.currentSong
   if (!song) return
-  const url = kind === 'audio' ? downloadUrl(song.id) : downloadLyricUrl(song.id)
+  const url = kind === 'audio' ? downloadUrl(song.id, player.quality) : downloadLyricUrl(song.id)
   downloadFile(url, `${song.artist} - ${song.name}`)
   ElMessage.success(`下载: ${song.artist} - ${song.name}`)
 }
@@ -106,13 +128,24 @@ function triggerDownload(kind: 'audio' | 'lyric') {
 
         <div class="np-title">{{ playlist.currentSong?.name || '未在播放' }}</div>
         <div class="np-artist">{{ playlist.currentSong?.artist || '从搜索或歌单选择歌曲' }}</div>
-        <el-tag
-          v-if="player.detail?.level && QUALITY_MAP[player.detail.level]"
-          :type="QUALITY_MAP[player.detail.level].type"
-          size="small"
-        >
-          {{ QUALITY_MAP[player.detail.level].label }}
-        </el-tag>
+        <div class="np-quality">
+          <span class="q-label">音质</span>
+          <el-select
+            v-model="player.quality"
+            size="small"
+            style="width: 150px"
+            @change="player.persist()"
+          >
+            <el-option v-for="opt in qualityOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+          <el-tag
+            v-if="player.detail?.level && QUALITY_MAP[player.detail.level]"
+            :type="QUALITY_MAP[player.detail.level].type"
+            size="small"
+          >
+            {{ QUALITY_MAP[player.detail.level].label }}
+          </el-tag>
+        </div>
 
         <div class="np-progress">
           <span>{{ formatTime(player.currentTime) }}</span>
@@ -239,6 +272,16 @@ body,
   font-weight: 700;
   text-align: center;
   word-break: break-all;
+}
+.np-quality {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.q-label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
 }
 .np-artist {
   font-size: 13px;

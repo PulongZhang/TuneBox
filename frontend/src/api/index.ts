@@ -8,8 +8,8 @@ export async function searchSongs(q: string, limit = 30): Promise<Song[]> {
   return data.data
 }
 
-export async function getSong(sid: number | string): Promise<SongDetail> {
-  const { data } = await http.get<{ data: SongDetail }>(`/songs/${sid}`)
+export async function getSong(sid: number | string, level = 'jymaster'): Promise<SongDetail> {
+  const { data } = await http.get<{ data: SongDetail }>(`/songs/${sid}`, { params: { level } })
   return data.data
 }
 
@@ -23,12 +23,12 @@ export async function getPlaylist(pid: number | string): Promise<Song[]> {
   return data.data
 }
 
-export function streamUrl(sid: number | string): string {
-  return `/api/v1/songs/${sid}/stream`
+export function streamUrl(sid: number | string, level = 'jymaster'): string {
+  return `/api/v1/songs/${sid}/stream?level=${level}`
 }
 
-export function downloadUrl(sid: number | string): string {
-  return `/api/v1/songs/${sid}/download`
+export function downloadUrl(sid: number | string, level = 'jymaster'): string {
+  return `/api/v1/songs/${sid}/download?level=${level}`
 }
 
 export function downloadLyricUrl(sid: number | string): string {

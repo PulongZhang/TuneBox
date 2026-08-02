@@ -43,7 +43,7 @@ export function useHotkeys(getViewMode: () => string) {
       case 'KeyS':
         if (e.ctrlKey && playlist.currentSong) {
           e.preventDefault()
-          downloadFile(downloadUrl(playlist.currentSong.id), 'song')
+          downloadFile(downloadUrl(playlist.currentSong.id, player.quality), 'song')
         }
         break
       case 'KeyL':
