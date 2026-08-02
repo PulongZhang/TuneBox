@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
-import QRCode from 'qrcode'
-import { onMounted, onUnmounted, ref } from 'vue'
-import { checkQr, coverUrl, getAuthStatus, getMyPlaylists, getPlaylist, getQrKey, postLogout } from '../api'
+import { onMounted, ref } from 'vue'
+import { coverUrl, getAuthStatus, getMyPlaylists, getPlaylist, importCookie, postLogout } from '../api'
 import { usePlaylistStore } from '../stores/playlist'
 import type { NetEaseProfile, UserPlaylist } from '../types'
 
@@ -15,24 +14,11 @@ const profile = ref<NetEaseProfile | null>(null)
 const playlists = ref<UserPlaylist[]>([])
 const loadingPlaylists = ref(false)
 
-// 扫码登录状态
-const qrPhase = ref<'idle' | 'loading' | 'scanning' | 'expired'>('idle')
-const qrTip = ref('')
-const qrKeyVal = ref('')
-const qrCanvas = ref<HTMLCanvasElement | null>(null)
-let pollTimer: number | undefined
-
-const QR_PAYLOAD = (key: string) => `https://music.163.com/login?codekey=${key}`
+// Cookie 登录（网易云网页版登录后复制 Cookie 粘贴导入）
+const cookieText = ref('')
+const importingCookie = ref(false)
 
 onMounted(refreshStatus)
-onUnmounted(stopPolling)
-
-function stopPolling() {
-  if (pollTimer) {
-    clearTimeout(pollTimer)
-    pollTimer = undefined
-  }
-}
 
 async function refreshStatus() {
   try {
@@ -45,70 +31,25 @@ async function refreshStatus() {
   }
 }
 
-async function startLogin() {
-  qrPhase.value = 'loading'
-  qrTip.value = '正在获取二维码...'
-  try {
-    const { key } = await getQrKey()
-    qrKeyVal.value = key
-    if (qrCanvas.value) {
-      await QRCode.toCanvas(qrCanvas.value, QR_PAYLOAD(key), { width: 200, margin: 1 })
-    }
-    qrPhase.value = 'scanning'
-    qrTip.value = '请使用网易云音乐 App 扫码'
-    pollQr(key)
-  } catch {
-    qrPhase.value = 'idle'
-    qrTip.value = ''
-    ElMessage.error('获取登录二维码失败')
+async function submitCookie() {
+  if (!cookieText.value.trim()) {
+    ElMessage.warning('请先复制粘贴网易云 Cookie')
+    return
   }
-}
-
-function pollQr(key: string) {
-  stopPolling()
-  pollTimer = window.setTimeout(async () => {
-    try {
-      const r = await checkQr(key)
-      if (r.code === 803 && r.profile) {
-        // 登录成功
-        qrPhase.value = 'idle'
-        qrTip.value = ''
-        qrKeyVal.value = ''
-        loggedIn.value = true
-        profile.value = r.profile
-        ElMessage.success(`欢迎，${r.profile.nickname}`)
-        loadPlaylists()
-        return
-      }
-      if (r.code === 802) {
-        qrTip.value = '已扫码，请在手机上确认登录'
-      } else if (r.code === 800) {
-        qrPhase.value = 'expired'
-        qrTip.value = '二维码已过期，请重新获取'
-        return
-      } else if (r.code === 801) {
-        qrTip.value = '请使用网易云音乐 App 扫码'
-      } else if (r.code === 803) {
-        // 后端在 803 但资料拉取失败时会转成 -1，这里兜底防止无限轮询
-        qrPhase.value = 'expired'
-        qrTip.value = r.message || '登录状态异常，请刷新二维码重试'
-        return
-      } else if (r.message) {
-        // 风控/错误码（如 401/400）：停止轮询，提示重试
-        qrPhase.value = 'expired'
-        qrTip.value = `${r.message}，请刷新二维码重试`
-        return
-      } else {
-        qrPhase.value = 'expired'
-        qrTip.value = '登录异常，请刷新二维码重试'
-        return
-      }
-      if (qrPhase.value === 'scanning') pollQr(key)
-    } catch {
-      qrTip.value = '轮询失败，正在重试...'
-      if (qrPhase.value === 'scanning') pollQr(key)
-    }
-  }, 2000)
+  importingCookie.value = true
+  try {
+    const p = await importCookie(cookieText.value.trim())
+    cookieText.value = ''
+    loggedIn.value = true
+    profile.value = p
+    ElMessage.success(`欢迎，${p.nickname}`)
+    loadPlaylists()
+  } catch (e: unknown) {
+    const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+    ElMessage.error(detail ?? '登录失败，请检查 Cookie')
+  } finally {
+    importingCookie.value = false
+  }
 }
 
 async function loadPlaylists() {
@@ -158,25 +99,27 @@ async function doLogout() {
 
 <template>
   <div class="my-view" v-loading="loadingPlaylists">
-    <!-- 未登录：扫码登录 -->
+    <!-- 未登录：导入网易云 Cookie -->
     <div v-if="!loggedIn" class="login-card">
       <div class="login-title">🎵 登录网易云账号</div>
       <div class="login-desc">登录后可导入「我的歌单」与私有歌单</div>
 
-      <div v-if="qrPhase === 'idle'" class="login-actions">
-        <el-button type="primary" size="large" @click="startLogin">扫码登录</el-button>
+      <div class="cookie-desc">
+        获取方法：<br />
+        ① 用浏览器打开 <b>music.163.com</b> 并登录你的账号<br />
+        ② 按 F12 打开开发者工具 → 切换到「网络」标签 → 刷新页面<br />
+        ③ 任选一个请求，在「请求头」里找到 <b>Cookie</b> 一整行，全选复制<br />
+        ④ 粘贴到下面的输入框
       </div>
-
-      <div v-else class="qr-area">
-        <canvas v-show="qrPhase === 'scanning'" ref="qrCanvas" class="qr-canvas" />
-        <div v-if="qrPhase === 'expired'" class="qr-expired">😵 二维码已过期</div>
-        <div v-if="qrPhase === 'loading'" class="qr-loading">⏳ 获取中...</div>
-        <div class="qr-tip">{{ qrTip }}</div>
-        <div class="qr-actions">
-          <el-button size="small" @click="startLogin">刷新二维码</el-button>
-          <el-button size="small" @click="qrPhase = 'idle'; qrTip = ''; stopPolling()">取消</el-button>
-        </div>
-      </div>
+      <el-input
+        v-model="cookieText"
+        type="textarea"
+        :rows="5"
+        placeholder="MUSIC_U=xxxx; __csrf=xxxx; ..."
+      />
+      <el-button type="primary" :loading="importingCookie" class="cookie-btn" @click="submitCookie">
+        登录并导入歌单
+      </el-button>
     </div>
 
     <!-- 已登录：账号信息 + 我的歌单 -->
@@ -223,8 +166,8 @@ async function doLogout() {
   padding: 12px;
 }
 .login-card {
-  max-width: 380px;
-  margin: 48px auto;
+  max-width: 420px;
+  margin: 40px auto;
   text-align: center;
   padding: 32px 24px;
   border: 1px dashed var(--el-border-color);
@@ -240,24 +183,16 @@ async function doLogout() {
   font-size: 13px;
   color: var(--el-text-color-secondary);
 }
-.qr-canvas {
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 8px;
-}
-.qr-loading,
-.qr-expired {
-  font-size: 24px;
-  padding: 40px 0;
-}
-.qr-tip {
-  margin: 12px 0;
-  font-size: 13px;
+.cookie-desc {
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.8;
   color: var(--el-text-color-secondary);
+  margin-bottom: 12px;
 }
-.qr-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
+.cookie-btn {
+  width: 100%;
+  margin-top: 12px;
 }
 .user-card {
   display: flex;

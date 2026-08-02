@@ -1,8 +1,9 @@
 """API 路由：/api/v1 全部端点。从旧版单文件播放器移植。"""
 
 import re
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Body, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
 
 from . import client, netease, streaming
@@ -93,16 +94,19 @@ def playlist(pid: str, request: Request):
     return {"data": songs}
 
 
-# ---------- 网易云账号登录（官方扫码） ----------
+# ---------- 网易云账号登录（网页 Cookie 导入） ----------
 
 
 def _session_id(request: Request) -> str | None:
     return request.cookies.get(netease.SESSION_COOKIE)
 
 
-@router.get("/auth/qr/key")
-def auth_qr_key(request: Request, response: Response):
-    # 复用浏览器已有会话（重复刷新二维码不产生新会话）；首次访问创建并下发会话 Cookie
+@router.post("/auth/cookie")
+def auth_cookie(request: Request, response: Response, payload: Annotated[dict, Body()]):
+    """扫码被风控时的兜底：导入网易云网页 Cookie（MUSIC_U=...; __csrf=...）。"""
+    cookie = (payload.get("cookie") or "").strip()
+    if not cookie:
+        raise HTTPException(status_code=400, detail="缺少 Cookie")
     sid = _session_id(request)
     if not sid or netease.get_session(sid) is None:
         sid = netease.create_session()
@@ -114,18 +118,10 @@ def auth_qr_key(request: Request, response: Response):
             samesite="lax",
             path="/",
         )
-    key = netease.qr_key(sid)
-    if not key:
-        raise HTTPException(status_code=502, detail="获取登录二维码失败")
-    return {"data": {"key": key}}
-
-
-@router.get("/auth/qr/check")
-def auth_qr_check(request: Request, key: str = Query(..., min_length=10)):
-    sid = _session_id(request)
-    if not sid or netease.get_session(sid) is None:
-        raise HTTPException(status_code=400, detail="会话不存在，请重新获取二维码")
-    return {"data": netease.qr_check(sid, key)}
+    ok, profile = netease.import_cookie(sid, cookie)
+    if not ok:
+        raise HTTPException(status_code=400, detail="Cookie 无效或已过期，请重新复制")
+    return {"data": {"profile": profile}}
 
 
 @router.get("/auth/status")
