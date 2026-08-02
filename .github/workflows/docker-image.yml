@@ -29,6 +29,7 @@ jobs:
         with:
           context: .
           push: true
+          # ghcr.io 镜像名必须全小写，用户名固定为小写形式
           tags: |
-            ghcr.io/${{ lower(github.repository_owner) }}/tunebox:latest
-            ghcr.io/${{ lower(github.repository_owner) }}/tunebox:${{ github.sha }}
+            ghcr.io/pulongzhang/tunebox:latest
+            ghcr.io/pulongzhang/tunebox:${{ github.sha }}
