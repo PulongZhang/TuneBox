@@ -20,8 +20,8 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY backend/app ./app
 COPY --from=frontend-build /build/dist ./frontend/dist
 
-# MUSIC_API 由 compose 的 env 注入（容器内 config.py 读环境变量）
-ENV MUSIC_API=${MUSIC_API}
+# MUSIC_API 由 docker compose 的 env_file: .env 在运行时注入
+# （容器内 config.py 从环境变量读取，无需构建时预设）
 
 EXPOSE 8000
 CMD ["uv", "run", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
