@@ -280,9 +280,18 @@ body,
 }
 .view-tabs {
   height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.view-tabs :deep(.el-tabs__header) {
+  flex-shrink: 0;
 }
 .view-tabs :deep(.el-tabs__content) {
-  height: calc(100% - 48px);
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
+}
+.view-tabs :deep(.el-tab-pane) {
+  height: 100%;
 }
 </style>
