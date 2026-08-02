@@ -9,6 +9,7 @@
 """
 
 import json
+import logging
 import threading
 import time
 from pathlib import Path
@@ -16,10 +17,16 @@ from uuid import uuid4
 
 import requests
 
+logger = logging.getLogger("tunebox.netease")
+
 from . import client
 from .config import BACKEND_DIR, NCM_REAL_IP, NETEASE_COOKIE_FILE
 
 NCM_HOST = "https://music.163.com"
+
+# 扫码确认对服务器（机房）IP 风控严格：未配置时默认伪装大陆 IP，
+# 否则会返回「请切换其他登录方式或升级新版本再试」
+DEFAULT_REAL_IP = "112.17.8.18"
 
 # 官方接口的语义码
 QR_EXPIRED = 800
@@ -46,8 +53,7 @@ _sess_objs: dict[str, requests.Session] = {}
 def _headers() -> dict:
     h = client.headers_for(NCM_HOST)
     h["Accept"] = "application/json, text/plain, */*"
-    if NCM_REAL_IP:
-        h["X-Real-IP"] = NCM_REAL_IP
+    h["X-Real-IP"] = NCM_REAL_IP or DEFAULT_REAL_IP
     return h
 
 
@@ -152,6 +158,8 @@ def qr_check(sid: str, key: str) -> dict:
     except (requests.RequestException, ValueError):
         return {"code": -1, "message": "轮询失败，请重试"}
 
+    if code not in (QR_WAITING, QR_SCANNED):
+        logger.warning("扫码登录异常: code=%s message=%s", code, message)
     if code == QR_CONFIRMED:
         sessions = _load()
         with _lock:

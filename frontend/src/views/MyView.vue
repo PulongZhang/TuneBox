@@ -88,8 +88,20 @@ function pollQr(key: string) {
         return
       } else if (r.code === 801) {
         qrTip.value = '请使用网易云音乐 App 扫码'
+      } else if (r.code === 803) {
+        // 后端在 803 但资料拉取失败时会转成 -1，这里兜底防止无限轮询
+        qrPhase.value = 'expired'
+        qrTip.value = r.message || '登录状态异常，请刷新二维码重试'
+        return
       } else if (r.message) {
-        qrTip.value = r.message
+        // 风控/错误码（如 401/400）：停止轮询，提示重试
+        qrPhase.value = 'expired'
+        qrTip.value = `${r.message}，请刷新二维码重试`
+        return
+      } else {
+        qrPhase.value = 'expired'
+        qrTip.value = '登录异常，请刷新二维码重试'
+        return
       }
       if (qrPhase.value === 'scanning') pollQr(key)
     } catch {
