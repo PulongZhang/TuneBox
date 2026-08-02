@@ -43,6 +43,16 @@ const qualityOptions = Object.entries(QUALITY_MAP).map(([value, meta]) => ({
   label: meta.label,
 }))
 
+// 进度条：拖拽中不跟随播放进度（否则 timeupdate 会把滑块拽回），松手后 seek
+const progValue = ref(0)
+const dragging = ref(false)
+watch(
+  () => player.currentTime,
+  (t) => {
+    if (!dragging.value) progValue.value = t
+  },
+)
+
 useHotkeys(() => activeTab.value)
 
 // 切换音质：重载当前曲目并刷新音质详情
@@ -151,11 +161,12 @@ function triggerDownload(kind: 'audio' | 'lyric') {
           <span>{{ formatTime(player.currentTime) }}</span>
           <el-slider
             class="prog-slider"
-            :model-value="player.currentTime"
+            v-model="progValue"
             :max="Math.max(player.duration, 1)"
             :show-tooltip="false"
             :disabled="!player.duration"
-            @change="(v: number | number[]) => seek(Array.isArray(v) ? v[0] : v)"
+            @input="dragging = true"
+            @change="(v: number | number[]) => { dragging = false; seek(Array.isArray(v) ? v[0] : v) }"
           />
           <span>{{ formatTime(player.duration) }}</span>
         </div>
