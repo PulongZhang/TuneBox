@@ -27,11 +27,20 @@ MUSIC_API=https://your-api-host.example.com/api
 ## 开发模式
 
 ```bash
-# 终端 1：后端（默认 http://127.0.0.1:8000）
-cd backend && uv run uvicorn app:app --port 8000
+# 终端 1：后端（http://127.0.0.1:8901）
+cd backend && uv run uvicorn app:app --port 8901
 
-# 终端 2：前端（http://localhost:5173，/api 自动代理到后端）
+# 终端 2：前端（http://localhost:5273，/api 自动代理到后端）
 cd frontend && pnpm install && pnpm dev
+```
+
+## 一键启动（Windows）
+
+双击 `start.bat`（或在项目根目录命令行运行），自动完成依赖检查、前端构建和 HTTPS 启动：
+
+```bash
+start.bat                # 默认尝试 443/2053/2087/8443 端口
+start.bat --port 58080   # 或指定端口
 ```
 
 ## 生产模式（单进程）
