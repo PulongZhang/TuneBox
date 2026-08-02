@@ -34,3 +34,6 @@ music-server = "app.https:main"
 
 [tool.uv]
 package = true
+
+[tool.setuptools.packages.find]
+include = ["app*"]
