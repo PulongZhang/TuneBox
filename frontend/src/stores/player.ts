@@ -13,13 +13,13 @@ function loadPersisted(): { volume: number; mode: PlayMode; quality: string } {
       return {
         volume: Number.isFinite(parsed.volume) ? parsed.volume : 70,
         mode: ['loop', 'shuffle', 'repeat-one'].includes(parsed.mode) ? parsed.mode : 'loop',
-        quality: QUALITY_LEVELS.includes(parsed.quality) ? parsed.quality : 'jymaster',
+        quality: QUALITY_LEVELS.includes(parsed.quality) ? parsed.quality : 'standard',
       }
     }
   } catch {
     // 忽略损坏数据
   }
-  return { volume: 70, mode: 'loop', quality: 'jymaster' }
+  return { volume: 70, mode: 'loop', quality: 'standard' }
 }
 
 export const usePlayerStore = defineStore('player', {

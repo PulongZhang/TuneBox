@@ -133,7 +133,7 @@ function triggerDownload(kind: 'audio' | 'lyric') {
           <el-select
             v-model="player.quality"
             size="small"
-            style="width: 150px"
+            class="q-select"
             @change="player.persist()"
           >
             <el-option v-for="opt in qualityOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
@@ -278,6 +278,9 @@ body,
   align-items: center;
   gap: 8px;
 }
+.q-select {
+  width: 150px;
+}
 .q-label {
   font-size: 12px;
   color: var(--el-text-color-secondary);
@@ -336,5 +339,55 @@ body,
 }
 .view-tabs :deep(.el-tab-pane) {
   height: 100%;
+}
+
+/* 移动端适配：窄屏下改为纵向堆叠，页面整体滚动 */
+@media (max-width: 768px) {
+  .topbar {
+    height: auto;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+  .search-box {
+    flex: 1 1 100%;
+    max-width: none;
+    order: 3;
+  }
+  .body {
+    height: auto;
+    flex-direction: column;
+  }
+  .player-panel {
+    width: 100%;
+    padding: 16px 16px 20px;
+    border-right: none;
+    border-bottom: 1px solid var(--el-border-color-light);
+    overflow-y: visible;
+  }
+  .np-cover {
+    width: 160px;
+    height: 160px;
+  }
+  .np-quality {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .q-select {
+    width: 130px;
+  }
+  .right-panel {
+    padding: 0 8px;
+    overflow: visible;
+  }
+  .view-tabs {
+    height: auto;
+  }
+  .view-tabs :deep(.el-tabs__content) {
+    overflow: visible;
+  }
+  .view-tabs :deep(.el-tab-pane) {
+    height: auto;
+  }
 }
 </style>
