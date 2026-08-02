@@ -1,0 +1,36 @@
+[project]
+name = "music-server"
+version = "0.1.0"
+description = "音乐播放器后端：FastAPI 代理与流式服务"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "cryptography>=50.0.0",
+    "fastapi>=0.141.1",
+    "requests>=2.34.2",
+    "uvicorn>=0.52.1",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+    "ruff>=0.16.1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+# BLE001/S110：上游网络失败的静默兜底（返回空串/空数据）是播放器的容错设计
+ignore = ["BLE001", "S110"]
+
+[project.scripts]
+music-server = "app.https:main"
+
+[tool.uv]
+package = true
