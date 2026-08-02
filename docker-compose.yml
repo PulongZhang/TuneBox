@@ -1,0 +1,9 @@
+services:
+  tunebox:
+    # GitHub Actions 自动构建并推送的镜像（ghcr.io），VPS 直接拉取
+    image: ghcr.io/pulongzhang/tunebox:latest
+    # 只绑定宿主机回环地址——公网访问经宿主机上的 cloudflared 隧道/反向代理
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file: .env
+    restart: unless-stopped

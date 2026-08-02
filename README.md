@@ -49,6 +49,37 @@ uv run music-server --port 2053 --save-cert
 
 HTTPS 使用自签名证书，浏览器首次访问提示"证书不受信任"时选择"高级 → 继续访问"即可。
 
+## 部署到 VPS（Docker）
+
+需要一台 VPS（安装 Docker 与 Compose 插件，如 `curl -fsSL https://get.docker.com | sh`）。
+
+### 镜像自动构建（GitHub Actions）
+
+每次 push 到 `main`，GitHub Actions 自动构建镜像并推送到 **ghcr.io**（`ghcr.io/pulongzhang/tunebox:latest`，仓库 public 则镜像公开可匿名拉取）。工作流在 `.github/workflows/docker-image.yml`，无需额外配置 Token（使用 GITHUB_TOKEN，workflow 内已声明 `packages: write` 权限）。
+
+### VPS 部署（拉镜像，无需构建）
+
+```bash
+# 1. 拉取代码（只需 compose 文件与 .env 示例）
+git clone https://github.com/PulongZhang/TuneBox.git && cd TuneBox
+
+# 2. 配置上游 API（必填）
+cp backend/.env.example .env   # 编辑 .env 填写 MUSIC_API
+
+# 3. 拉取镜像并启动
+docker compose pull && docker compose up -d
+
+# 4. 查看状态/日志
+docker compose ps
+docker compose logs -f
+```
+
+- 服务监听宿主机 `127.0.0.1:8000`，**不直接暴露公网**
+- 公网访问两种方式：
+  - 临时：宿主机上跑 `cloudflared tunnel --protocol http2 --url http://127.0.0.1:8000`
+  - 固定域名（推荐）：配置命名隧道 `cloudflared tunnel run <tunnel>` 指向 `http://127.0.0.1:8000`
+- 更新部署：`docker compose pull && docker compose up -d`
+
 ## 测试与检查
 
 ```bash
