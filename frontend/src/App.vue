@@ -83,7 +83,7 @@ function triggerDownload(kind: 'audio' | 'lyric') {
 <template>
   <el-container class="app">
     <el-header class="topbar">
-      <div class="logo">🎵 音乐播放器</div>
+      <div class="logo">🎵 TuneBox</div>
       <div class="search-box">
         <el-input v-model="keyword" placeholder="搜歌..." clearable size="large" @keyup.enter="doSearch" />
         <el-button type="primary" size="large" @click="doSearch">搜索</el-button>

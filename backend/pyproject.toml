@@ -1,5 +1,5 @@
 [project]
-name = "music-server"
+name = "tunebox-server"
 version = "0.1.0"
 description = "音乐播放器后端：FastAPI 代理与流式服务"
 readme = "README.md"

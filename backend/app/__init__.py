@@ -14,7 +14,7 @@ def create_app() -> FastAPI:
             "请在 backend/.env 中填写（参考 backend/.env.example）。"
         )
 
-    app = FastAPI(title="Music Server", version="0.1.0")
+    app = FastAPI(title="TuneBox Server", version="0.1.0")
     app.include_router(routes.router)
 
     # 生产形态：后端托管前端构建产物（开发时由 Vite 提供页面）
