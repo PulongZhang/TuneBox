@@ -1,17 +1,3 @@
-[project]
-name = "kazam"
-version = "0.1.0"
-description = "KAZAM! 自托管网易云音乐网页播放器"
-readme = "README.md"
-requires-python = ">=3.12"
-dependencies = [
-    "cryptography>=50.0.0",
-    "flask>=3.1.3",
-    "requests>=2.34.2",
-]
-
-[project.scripts]
-kazam = "kazam:main"
-
-[tool.uv]
-package = true
+# uv workspace 根：所有 Python 包位于子目录
+[tool.uv.workspace]
+members = ["backend"]
