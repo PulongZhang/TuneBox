@@ -2,10 +2,10 @@
 
 import re
 
-from fastapi import APIRouter, HTTPException, Query, Request, Response
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import Response, StreamingResponse
 
-from . import client, netease, streaming
+from . import client, streaming
 
 router = APIRouter(prefix="/api/v1")
 
@@ -68,7 +68,7 @@ def lyric(sid: str):
 
 
 @router.get("/playlists/{pid}")
-def playlist(pid: str, request: Request):
+def playlist(pid: str):
     try:
         r = client.api_get("/163_playlist", {"id": pid})
         body = r.json()
@@ -81,76 +81,9 @@ def playlist(pid: str, request: Request):
         elif isinstance(body, dict) and "tracks" in body:
             tracks = body["tracks"]
         songs = [client.normalize_song(t) for t in tracks]
-        if songs:
-            return {"data": songs}
-    except Exception:
-        # 上游异常时落到直连兜底（见下）
-        pass
-    # 私有歌单：上游中转未登录取不到 → 用已保存的网易云登录态直连官方接口
-    songs = netease.playlist_songs(pid, _session_id(request))
-    if not songs:
-        raise HTTPException(status_code=502, detail="歌单加载失败")
-    return {"data": songs}
-
-
-# ---------- 网易云账号登录（官方扫码） ----------
-
-
-def _session_id(request: Request) -> str | None:
-    return request.cookies.get(netease.SESSION_COOKIE)
-
-
-@router.get("/auth/qr/key")
-def auth_qr_key(request: Request, response: Response):
-    # 复用浏览器已有会话（重复刷新二维码不产生新会话）；首次访问创建并下发会话 Cookie
-    sid = _session_id(request)
-    if not sid or netease.get_session(sid) is None:
-        sid = netease.create_session()
-        response.set_cookie(
-            netease.SESSION_COOKIE,
-            sid,
-            max_age=netease.SESSION_TTL_DAYS * 86400,
-            httponly=True,
-            samesite="lax",
-            path="/",
-        )
-    key = netease.qr_key(sid)
-    if not key:
-        raise HTTPException(status_code=502, detail="获取登录二维码失败")
-    return {"data": {"key": key}}
-
-
-@router.get("/auth/qr/check")
-def auth_qr_check(request: Request, key: str = Query(..., min_length=10)):
-    sid = _session_id(request)
-    if not sid or netease.get_session(sid) is None:
-        raise HTTPException(status_code=400, detail="会话不存在，请重新获取二维码")
-    return {"data": netease.qr_check(sid, key)}
-
-
-@router.get("/auth/status")
-def auth_status(request: Request):
-    return {"data": netease.status(_session_id(request))}
-
-
-@router.post("/auth/logout")
-def auth_logout(request: Request, response: Response):
-    sid = _session_id(request)
-    if sid:
-        netease.logout(sid)
-        response.delete_cookie(netease.SESSION_COOKIE, path="/")
-    return {"data": {"logged_in": False}}
-
-
-@router.get("/user/playlists")
-def my_playlists(request: Request):
-    sid = _session_id(request)
-    if not sid:
-        raise HTTPException(status_code=401, detail="未登录或登录已过期")
-    pls = netease.user_playlists(sid)
-    if pls is None:
-        raise HTTPException(status_code=401, detail="未登录或登录已过期")
-    return {"data": pls}
+        return {"data": songs}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"歌单加载失败: {e}") from e
 
 
 @router.get("/cover-proxy")

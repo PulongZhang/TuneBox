@@ -26,9 +26,3 @@ _load_env_file(BACKEND_DIR / ".env")
 
 # 上游音乐 API 中转地址（必填），形如 https://example.com/api
 MUSIC_API = os.environ.get("MUSIC_API", "").rstrip("/")
-
-# 网易云登录态 Cookie 文件路径（默认 backend/netease_cookie.json）
-NETEASE_COOKIE_FILE = os.environ.get("NETEASE_COOKIE_FILE", "").strip()
-
-# 直连网易云官方接口时附加的 X-Real-IP（海外部署遇 412/地域限制时配置）
-NCM_REAL_IP = os.environ.get("NCM_REAL_IP", "").strip()

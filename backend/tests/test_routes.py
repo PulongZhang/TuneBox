@@ -3,7 +3,7 @@
 from fastapi.testclient import TestClient
 
 from app import app as fastapi_app
-from app import client, netease
+from app import client
 
 
 def _client():
@@ -163,33 +163,14 @@ def test_stream_level_passed_to_upstream(monkeypatch):
 
 
 def test_playlist_upstream_error(monkeypatch):
-    """上游抛异常且直连兜底也无数据 → 502。"""
+    """上游抛异常（网络失败）→ 502。"""
 
     def fake_api_get(path, params=None, timeout=12):
         raise ConnectionError("upstream down")
 
     monkeypatch.setattr(client, "api_get", fake_api_get)
-    monkeypatch.setattr(netease, "playlist_songs", lambda pid, sid=None: [])
     r = _client().get("/api/v1/playlists/1")
     assert r.status_code == 502
-
-
-def test_playlist_fallback_to_direct(monkeypatch):
-    """上游无数据（如私有歌单）→ 用登录态直连官方接口兜底。"""
-
-    def fake_api_get(path, params=None, timeout=12):
-        class R:
-            def json(self):
-                return {"data": {"tracks": []}}
-        return R()
-
-    monkeypatch.setattr(client, "api_get", fake_api_get)
-    monkeypatch.setattr(netease, "playlist_songs", lambda pid, sid=None: [
-        {"id": 9, "name": "私有歌", "artist": "A", "album": "", "cover": "", "duration": 0},
-    ])
-    r = _client().get("/api/v1/playlists/1")
-    assert r.status_code == 200
-    assert r.json()["data"][0]["id"] == 9
 
 
 def test_playlist_ok(monkeypatch):
