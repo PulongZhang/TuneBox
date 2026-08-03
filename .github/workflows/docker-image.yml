@@ -35,6 +35,11 @@ jobs:
         with:
           context: .
           push: true
+          # 只推纯 amd64 manifest（无 index/证明子清单）：
+          # provenance 清单会让 ghcr 把同一 digest 的子清单算作旧版本，
+          # 清理时被删掉后新 index 仍引用它，导致拉取 404。
+          platforms: linux/amd64
+          provenance: false
           # latest 作为可滚动指针；版本号 tag 动态取自 backend/app/__init__.py
           tags: |
             ghcr.io/pulongzhang/tunebox:latest
