@@ -1,9 +1,9 @@
-"""网易云账号登录（网页 Cookie 导入）+ 我的歌单。
+"""网易云账号登录（官方扫码接口）+ 我的歌单。
 
 与上游中转（MUSIC_API）无关，直连 music.163.com：
-- 登录：用户在浏览器登录 music.163.com 后复制 Cookie（MUSIC_U=...; __csrf=...）导入，
-  后端校验有效性并绑定到会话（扫码接口已被网易云风控，不再使用）
-- 多会话：每次导入的登录态相互独立（浏览器持有 tunebox_session Cookie 标识），
+- 扫码登录：/api/login/qrcode/unikey 取 key → 前端渲染二维码 →
+  轮询 /api/login/qrcode/client/login（800 过期 / 801 等待 / 802 已扫码 / 803 确认）
+- 多会话：每次登录会话相互独立（浏览器持有 tunebox_session Cookie 标识），
   持久化到本地文件（NETEASE_COOKIE_FILE），重启不丢
 - 我的歌单：/api/user/playlist；私有歌单兜底：/api/v6/playlist/detail
 """
@@ -17,13 +17,22 @@ from uuid import uuid4
 
 import requests
 
+logger = logging.getLogger("tunebox.netease")
+
 from . import client
 from .config import BACKEND_DIR, NCM_REAL_IP, NETEASE_COOKIE_FILE
 
 NCM_HOST = "https://music.163.com"
 
-# 官方接口对服务器（机房）IP 风控严格：未配置时默认伪装大陆 IP
+# 扫码确认对服务器（机房）IP 风控严格：未配置时默认伪装大陆 IP，
+# 否则会返回「请切换其他登录方式或升级新版本再试」
 DEFAULT_REAL_IP = "112.17.8.18"
+
+# 官方接口的语义码
+QR_EXPIRED = 800
+QR_WAITING = 801
+QR_SCANNED = 802
+QR_CONFIRMED = 803
 
 # 登录确认后 Cookie 会在随后的请求里短暂失效，立即拉取账号信息（官方行为）
 _PROFILE_RETRIES = 3
@@ -37,10 +46,8 @@ _SESSION_MAX = 10
 _lock = threading.RLock()
 # sid -> {"cookies": {...}, "profile": {...} | None, "created_at": iso}
 _sessions: dict[str, dict] = {}
-# sid -> requests.Session（内存态，含登录态 Cookie）
+# sid -> requests.Session（内存态，含未登录阶段的匿名 Cookie，登录后含 MUSIC_U）
 _sess_objs: dict[str, requests.Session] = {}
-
-logger = logging.getLogger("tunebox.netease")
 
 
 def _headers() -> dict:
@@ -116,36 +123,56 @@ def get_session(sid: str) -> dict | None:
     return _load().get(sid)
 
 
-def import_cookie(sid: str, cookie: str) -> tuple[bool, dict | None]:
-    """把用户粘贴的网易云网页 Cookie 绑定到会话并校验有效性。
+def qr_key(sid: str) -> str:
+    """获取扫码 key（官方 unikey），返回空串表示失败。
 
-    返回 (是否有效, 账号资料)；无效时回滚清空会话 Cookie。
+    unikey 请求下发的匿名 Cookie 落在该会话对象上，扫码确认必须复用同一会话。
     """
-    s = _obj(sid)
-    s.cookies.clear()
-    for part in cookie.split(";"):
-        part = part.strip()
-        if not part or "=" not in part:
-            continue
-        k, _, v = part.partition("=")
-        s.cookies.set(k.strip(), v.strip())
+    try:
+        s = _obj(sid)
+        r = s.get(f"{NCM_HOST}/api/login/qrcode/unikey", params={"type": 1}, headers=_headers(), timeout=10)
+        body = r.json()
+        key = body.get("unikey", "")
+        if not key or body.get("code") != 200:
+            return ""
+        return key
+    except (requests.RequestException, ValueError):
+        return ""
 
-    with _lock:
-        data = _load().get(sid)
-        if data is None:
-            return False, None
-        data["cookies"] = requests.utils.dict_from_cookiejar(s.cookies)
-        _save()
 
-    profile = fetch_profile(sid)
-    if not profile:
+def qr_check(sid: str, key: str) -> dict:
+    """轮询扫码结果。803 确认时保存 Cookie 并拉取账号资料。
+
+    返回 {"code", "message", "profile"?}，语义码与官方一致（800/801/802/803）。
+    """
+    try:
+        r = _obj(sid).get(
+            f"{NCM_HOST}/api/login/qrcode/client/login",
+            params={"key": key, "type": 1},
+            headers=_headers(),
+            timeout=10,
+        )
+        body = r.json()
+        code = int(body.get("code", -1))
+        message = body.get("message") or body.get("msg") or ""
+    except (requests.RequestException, ValueError):
+        return {"code": -1, "message": "轮询失败，请重试"}
+
+    if code not in (QR_WAITING, QR_SCANNED):
+        logger.warning("扫码登录异常: code=%s message=%s", code, message)
+    if code == QR_CONFIRMED:
+        sessions = _load()
         with _lock:
-            data = _load().get(sid)
-            if data:
-                data["cookies"] = {}
-                _save()
-        return False, None
-    return True, profile
+            data = sessions.get(sid)
+            if data is None:
+                return {"code": -1, "message": "会话不存在，请重新扫码"}
+            data["cookies"] = requests.utils.dict_from_cookiejar(_obj(sid).cookies)
+            _save()
+        profile = fetch_profile(sid)
+        if not profile:
+            return {"code": -1, "message": "登录确认成功，但获取账号信息失败，请重试"}
+        return {"code": code, "message": message, "profile": profile}
+    return {"code": code, "message": message}
 
 
 def fetch_profile(sid: str) -> dict | None:

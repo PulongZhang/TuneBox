@@ -39,7 +39,23 @@ export function coverUrl(url: string): string {
   return `/api/v1/cover-proxy?url=${encodeURIComponent(url)}`
 }
 
-// ---------- 网易云账号（网页 Cookie 导入） ----------
+// ---------- 网易云账号（官方扫码登录） ----------
+
+export async function getQrKey(): Promise<{ key: string }> {
+  const { data } = await http.get<{ data: { key: string } }>('/auth/qr/key')
+  return data.data
+}
+
+export interface QrCheckResult {
+  code: number
+  message?: string
+  profile?: NetEaseProfile
+}
+
+export async function checkQr(key: string): Promise<QrCheckResult> {
+  const { data } = await http.get<{ data: QrCheckResult }>('/auth/qr/check', { params: { key } })
+  return data.data
+}
 
 export async function getAuthStatus(): Promise<{ loggedIn: boolean; profile: NetEaseProfile | null }> {
   const { data } = await http.get<{ data: { logged_in: boolean; profile: NetEaseProfile | null } }>('/auth/status')
@@ -48,11 +64,6 @@ export async function getAuthStatus(): Promise<{ loggedIn: boolean; profile: Net
 
 export async function postLogout(): Promise<void> {
   await http.post('/auth/logout')
-}
-
-export async function importCookie(cookie: string): Promise<NetEaseProfile> {
-  const { data } = await http.post<{ data: { profile: NetEaseProfile } }>('/auth/cookie', { cookie })
-  return data.data.profile
 }
 
 export async function getMyPlaylists(): Promise<UserPlaylist[]> {
