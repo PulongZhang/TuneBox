@@ -1,10 +1,13 @@
 name: Build Docker image
 
 on:
-  push:
-    branches: [main]
-  # 手动触发：GitHub → Actions → Build Docker image → Run workflow
+  # 仅手动触发（避免每次 push 都打镜像）；构建时输入版本号
   workflow_dispatch:
+    inputs:
+      version:
+        description: '镜像版本号，例如 v1.0.1'
+        required: true
+        default: 'v0.1.0'
 
 jobs:
   build:
@@ -30,7 +33,15 @@ jobs:
         with:
           context: .
           push: true
-          # ghcr.io 镜像名必须全小写，用户名固定为小写形式
+          # latest 作为可滚动指针；版本号 tag 作为具体发布标识
           tags: |
             ghcr.io/pulongzhang/tunebox:latest
-            ghcr.io/pulongzhang/tunebox:${{ github.sha }}
+            ghcr.io/pulongzhang/tunebox:${{ inputs.version }}
+
+      - name: Prune old versions
+        uses: ghcr.io/actions/delete-package-versions@v5
+        with:
+          package-name: tunebox
+          package-type: container
+          # 只保留最近 3 个版本，更早的自动删除
+          min-versions-to-keep: 3

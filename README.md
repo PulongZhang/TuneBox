@@ -53,9 +53,11 @@ HTTPS 使用自签名证书，浏览器首次访问提示"证书不受信任"时
 
 需要一台 VPS（安装 Docker 与 Compose 插件，如 `curl -fsSL https://get.docker.com | sh`）。
 
-### 镜像自动构建（GitHub Actions）
+### 镜像手动构建（GitHub Actions）
 
-每次 push 到 `main`，GitHub Actions 自动构建镜像并推送到 **ghcr.io**（`ghcr.io/pulongzhang/tunebox:latest`，仓库 public 则镜像公开可匿名拉取）。工作流在 `.github/workflows/docker-image.yml`，无需额外配置 Token（使用 GITHUB_TOKEN，workflow 内已声明 `packages: write` 权限）。
+镜像不再随 push 自动构建，改为手动触发：GitHub → Actions → **Build Docker image** → Run workflow → 填写版本号（如 `v1.0.1`）。
+
+构建后推送到 **ghcr.io**（`ghcr.io/pulongzhang/tunebox:latest` + `:$版本号`），并自动清理只保留最近 3 个版本。工作流在 `.github/workflows/docker-image.yml`，无需额外配置 Token（使用 GITHUB_TOKEN，workflow 内已声明 `packages: write` 权限）。
 
 ### VPS 部署（拉镜像，无需构建）
 
