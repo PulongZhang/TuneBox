@@ -55,9 +55,9 @@ HTTPS 使用自签名证书，浏览器首次访问提示"证书不受信任"时
 
 ### 镜像手动构建（GitHub Actions）
 
-镜像不再随 push 自动构建，改为手动触发：GitHub → Actions → **Build Docker image** → Run workflow → 填写版本号（如 `v1.0.1`）。
+镜像不再随 push 自动构建，改为手动触发：GitHub → Actions → **Build Docker image** → Run workflow（无需填版本号）。
 
-构建后推送到 **ghcr.io**（`ghcr.io/pulongzhang/tunebox:latest` + `:$版本号`），并自动清理只保留最近 3 个版本。工作流在 `.github/workflows/docker-image.yml`，无需额外配置 Token（使用 GITHUB_TOKEN，workflow 内已声明 `packages: write` 权限）。
+构建时自动从 `backend/app/__init__.py` 的 `version` 字段读取版本号，推送到 **ghcr.io**（`ghcr.io/pulongzhang/tunebox:latest` + `:v<版本号>`），并自动清理只保留最近 3 个版本。改版本号只需改代码里那一处 `version=`。工作流在 `.github/workflows/docker-image.yml`，无需额外配置 Token（使用 GITHUB_TOKEN，workflow 内已声明 `packages: write` 权限）。
 
 ### VPS 部署（拉镜像，无需构建）
 

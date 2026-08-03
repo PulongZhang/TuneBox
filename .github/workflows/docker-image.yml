@@ -1,13 +1,8 @@
 name: Build Docker image
 
 on:
-  # 仅手动触发（避免每次 push 都打镜像）；构建时输入版本号
+  # 仅手动触发（避免每次 push 都打镜像）；版本号从 FastAPI 代码中自动读取
   workflow_dispatch:
-    inputs:
-      version:
-        description: '镜像版本号，例如 v1.0.1'
-        required: true
-        default: 'v0.1.0'
 
 jobs:
   build:
@@ -28,15 +23,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Read version from FastAPI
+        id: ver
+        run: |
+          VERSION=$(grep -oP 'version="\K[0-9.]+' backend/app/__init__.py)
+          echo "FastAPI version: $VERSION"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Build and push
         uses: docker/build-push-action@v7
         with:
           context: .
           push: true
-          # latest 作为可滚动指针；版本号 tag 作为具体发布标识
+          # latest 作为可滚动指针；版本号 tag 动态取自 backend/app/__init__.py
           tags: |
             ghcr.io/pulongzhang/tunebox:latest
-            ghcr.io/pulongzhang/tunebox:${{ inputs.version }}
+            ghcr.io/pulongzhang/tunebox:${{ steps.ver.outputs.tag }}
 
       - name: Prune old versions
         uses: ghcr.io/actions/delete-package-versions@v5
