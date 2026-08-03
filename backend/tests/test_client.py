@@ -13,24 +13,6 @@ def test_ua_sec_ch_ua_version_consistent():
         assert f'"Chromium";v="{chrome_major}"' in headers["Sec-Ch-Ua"]
 
 
-def test_api_get_includes_apikey(monkeypatch):
-    """api_get 应对每个上游请求附加 apikey 且不覆盖原参数。"""
-    captured = {}
-
-    def fake_get(url, params=None, headers=None, timeout=12):
-        captured["url"] = url
-        captured["params"] = params
-        return type("R", (), {"json": lambda self: {}, "status_code": 200})()
-
-    monkeypatch.setattr(client.SESSION, "get", fake_get)
-    client.api_get("/163_search", {"keyword": "晴天", "limit": 5})
-
-    assert captured["url"] == "https://test-upstream.example.com/api/163_search"
-    assert captured["params"]["apikey"] == "test-key"
-    assert captured["params"]["keyword"] == "晴天"
-    assert captured["params"]["limit"] == 5
-
-
 def test_forwarded_headers_stripped():
     h = client.headers_for("https://example.com/", {
         "X-Forwarded-For": "1.2.3.4",

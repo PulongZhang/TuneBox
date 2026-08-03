@@ -3,4 +3,3 @@
 import os
 
 os.environ.setdefault("MUSIC_API", "https://test-upstream.example.com/api")
-os.environ.setdefault("MUSIC_API_KEY", "test-key")
