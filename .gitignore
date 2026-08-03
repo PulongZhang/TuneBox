@@ -18,6 +18,3 @@ wheels/
 frontend/node_modules/
 frontend/dist/
 tunebox-cf.bat
-
-# NetEase login session state (runtime data)
-backend/netease_cookie.json
