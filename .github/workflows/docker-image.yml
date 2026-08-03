@@ -41,7 +41,7 @@ jobs:
             ghcr.io/pulongzhang/tunebox:${{ steps.ver.outputs.tag }}
 
       - name: Prune old versions
-        uses: ghcr.io/actions/delete-package-versions@v5
+        uses: actions/delete-package-versions@v5
         with:
           package-name: tunebox
           package-type: container
