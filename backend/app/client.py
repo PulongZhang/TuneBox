@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 import requests
 
-from .config import MUSIC_API
+from .config import MUSIC_API, MUSIC_API_KEY
 
 CHROME_VERSIONS = [
     "128.0.6613.137", "128.0.6613.138", "129.0.6668.58", "129.0.6668.59",
@@ -92,7 +92,10 @@ def try_https(url: str) -> str:
 def api_get(path: str, params: dict | None = None, timeout: int = 12) -> requests.Response:
     h = headers_for(MUSIC_API)
     h["Accept"] = "application/json"
-    return SESSION.get(f"{MUSIC_API}{path}", params=params, headers=h, timeout=timeout)
+    # 上游要求 apikey 鉴权（query 参数），每个请求都必须附带
+    p = dict(params or {})
+    p["apikey"] = MUSIC_API_KEY
+    return SESSION.get(f"{MUSIC_API}{path}", params=p, headers=h, timeout=timeout)
 
 
 def _extract_artists(track: dict) -> str:
