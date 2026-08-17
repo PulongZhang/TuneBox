@@ -26,3 +26,6 @@ _load_env_file(BACKEND_DIR / ".env")
 
 # 上游音乐 API 中转地址（必填），形如 https://example.com/api
 MUSIC_API = os.environ.get("MUSIC_API", "").rstrip("/")
+
+# 上游个人密钥（必填），登录上游平台后点击"查看密钥"获取
+MUSIC_API_KEY = os.environ.get("MUSIC_API_KEY", "")

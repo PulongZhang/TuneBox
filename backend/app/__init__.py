@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from . import routes
-from .config import BACKEND_DIR, MUSIC_API, PROJECT_DIR
+from .config import BACKEND_DIR, MUSIC_API, MUSIC_API_KEY, PROJECT_DIR
 
 
 def _find_dist_dir() -> Path | None:
@@ -19,9 +19,9 @@ def _find_dist_dir() -> Path | None:
 
 
 def create_app() -> FastAPI:
-    if not MUSIC_API:
+    if not MUSIC_API or not MUSIC_API_KEY:
         raise RuntimeError(
-            "未配置 MUSIC_API 环境变量，无法获取音源。"
+            "未配置 MUSIC_API / MUSIC_API_KEY 环境变量，无法获取音源。"
             "请在 backend/.env 中填写（参考 backend/.env.example）。"
         )
 

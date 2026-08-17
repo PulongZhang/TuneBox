@@ -16,13 +16,14 @@
 
 ## 配置
 
-复制 `backend/.env.example` 为 `.env`（backend/ 或项目根目录均可），填写上游 API 地址：
+复制 `backend/.env.example` 为 `.env`（backend/ 或项目根目录均可），填写上游 API 地址与个人密钥：
 
 ```
 MUSIC_API=https://your-api-host.example.com/api
+MUSIC_API_KEY=<登录上游平台后点击"查看密钥"获取>
 ```
 
-> `MUSIC_API` 是必填项，缺失时服务拒绝启动。
+> `MUSIC_API` 与 `MUSIC_API_KEY` 均为必填项，缺失时服务拒绝启动。
 
 ## 开发模式
 
